@@ -49,6 +49,12 @@ class LaserBlast {
         // Calculate trail start position
         const trailStartY = this.y + this.trailLength;
 
+        // Draw outer glow first (largest)
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size * 5, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 0, 0, 0.2)';
+        ctx.fill();
+
         // Draw red laser trail with gradient
         ctx.beginPath();
         ctx.moveTo(this.x, trailStartY);
@@ -56,24 +62,24 @@ class LaserBlast {
 
         const gradient = ctx.createLinearGradient(this.x, trailStartY, this.x, this.y);
         gradient.addColorStop(0, 'rgba(255, 0, 0, 0)');
-        gradient.addColorStop(0.3, 'rgba(255, 50, 50, 0.6)');
-        gradient.addColorStop(1, 'rgba(255, 100, 100, 1)');
+        gradient.addColorStop(0.3, 'rgba(255, 80, 80, 0.8)');
+        gradient.addColorStop(1, 'rgba(255, 150, 150, 1)');
 
         ctx.strokeStyle = gradient;
-        ctx.lineWidth = this.size;
+        ctx.lineWidth = this.size * 2;
         ctx.lineCap = 'round';
         ctx.stroke();
 
-        // Draw bright red point at the head
+        // Draw bright core
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size * 2, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255, 80, 80, 1)';
+        ctx.arc(this.x, this.y, this.size * 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 100, 100, 0.8)';
         ctx.fill();
 
-        // Add glow effect
+        // Draw very bright center point
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size * 3, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
+        ctx.arc(this.x, this.y, this.size * 1.5, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 200, 200, 1)';
         ctx.fill();
     }
 }
@@ -229,7 +235,7 @@ function animate() {
         star.draw();
     });
 
-    // Update and draw laser blasts
+    // Update and draw laser blasts (drawn after stars so they appear on top)
     for (let i = laserBlasts.length - 1; i >= 0; i--) {
         const blast = laserBlasts[i];
         if (!blast.update()) {
