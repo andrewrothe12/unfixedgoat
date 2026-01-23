@@ -27,49 +27,56 @@ let hyperdriveActive = false;
 
 // Laser blast class for TIE fighter weapons
 class LaserBlast {
-    constructor(offsetX) {
-        // Start from outer edge at a lower angular plane (15-25 degrees off-axis)
-        // This simulates 3D space with lasers on a different plane than the starfield
-        const spreadFactor = Math.pow(Math.random(), 1.5);
-        const angleFromCenter = (15 + spreadFactor * 10) * (Math.PI / 180); // 15-25 degrees
-        const rotation = Math.random() * Math.PI * 2;
+    constructor() {
+        // Mirror the starfield 3D system but in reverse (negative Z direction)
+        // Use same angle distribution as stars (5-35 degrees) for consistency
+        const spreadFactor = Math.pow(Math.random(), 2);
+        this.angleFromCenter = (5 + spreadFactor * 30) * (Math.PI / 180); // 5-35 degrees
 
-        // Calculate starting position on outer edge
-        const startDistance = Math.max(canvas.width, canvas.height) * 0.6;
-        const startScreenRadius = startDistance * Math.sin(angleFromCenter);
+        // Random rotation around center axis - but space lasers out more
+        this.rotation = Math.random() * Math.PI * 2;
 
-        this.startX = config.centerX + Math.cos(rotation) * startScreenRadius;
-        this.startY = config.centerY + Math.sin(rotation) * startScreenRadius;
+        // Start from outer edge in 3D space (far away in negative Z)
+        const startDistance = Math.max(canvas.width, canvas.height) * 0.7;
 
-        // Target is offset from exact center to create angled trajectory
-        const targetOffsetRadius = 30;
-        const targetX = config.centerX + Math.cos(rotation) * targetOffsetRadius;
-        const targetY = config.centerY + Math.sin(rotation) * targetOffsetRadius;
+        // Calculate 2D screen position based on 3D angles (same projection as stars)
+        const screenRadius = startDistance * Math.sin(this.angleFromCenter);
+        this.startX = config.centerX + Math.cos(this.rotation) * screenRadius;
+        this.startY = config.centerY + Math.sin(this.rotation) * screenRadius;
 
-        // Calculate direction toward offset center (creates 3D angled movement)
-        const dx = targetX - this.startX;
-        const dy = targetY - this.startY;
-        const distance = Math.sqrt(dx * dx + dy * dy);
+        // Z-depth component (negative - coming toward viewer, opposite of stars)
+        this.z = startDistance * Math.cos(this.angleFromCenter);
 
-        // Normalize direction vector (pointing inward at an angle)
-        this.dirX = dx / distance;
-        this.dirY = dy / distance;
+        // Direction: straight line toward center in 3D space
+        // Calculate exact center target
+        const dx = config.centerX - this.startX;
+        const dy = config.centerY - this.startY;
+        const screenDistance = Math.sqrt(dx * dx + dy * dy);
+
+        // Normalize direction vector (straight toward center)
+        this.dirX = dx / screenDistance;
+        this.dirY = dy / screenDistance;
 
         // Current position
         this.x = this.startX;
         this.y = this.startY;
-
-        this.speed = 18;
-        this.trailLength = 100;
-        this.width = 8; // Thicker tube-like laser
         this.distance = 0;
-        this.maxDistance = distance - 40; // Stop before reaching center
+
+        this.speed = 15;
+        this.trailLength = 120;
+        this.width = 10; // Thicker, more visible
+        this.maxDistance = screenDistance - 60; // Stop before center
     }
 
     update() {
         this.distance += this.speed;
+
+        // Move in straight line toward center
         this.x = this.startX + this.dirX * this.distance;
         this.y = this.startY + this.dirY * this.distance;
+
+        // Update Z position (moving toward viewer, negative direction)
+        this.z -= this.speed * Math.cos(this.angleFromCenter);
 
         // Remove if reached max distance
         return this.distance < this.maxDistance;
@@ -356,9 +363,10 @@ window.addEventListener('keydown', (e) => {
     // Laser blast controls - B key fires twin lasers
     if (e.code === 'KeyB') {
         e.preventDefault();
-        // Fire two laser blasts from left and right positions (from bottom of TIE fighter)
-        laserBlasts.push(new LaserBlast(-50)); // Left cannon
-        laserBlasts.push(new LaserBlast(50));  // Right cannon
+        // Fire multiple laser blasts in 3D space (spread out more)
+        for (let i = 0; i < 4; i++) {
+            laserBlasts.push(new LaserBlast());
+        }
     }
 });
 
