@@ -28,19 +28,30 @@ let hyperdriveActive = false;
 // Laser blast class for TIE fighter weapons
 class LaserBlast {
     constructor(offsetX) {
-        // Start from outer edge of screen
-        const angle = Math.random() * Math.PI * 2;
-        const startRadius = Math.max(canvas.width, canvas.height) * 0.7;
+        // Start from outer edge at a lower angular plane (15-25 degrees off-axis)
+        // This simulates 3D space with lasers on a different plane than the starfield
+        const spreadFactor = Math.pow(Math.random(), 1.5);
+        const angleFromCenter = (15 + spreadFactor * 10) * (Math.PI / 180); // 15-25 degrees
+        const rotation = Math.random() * Math.PI * 2;
 
-        this.startX = config.centerX + Math.cos(angle) * startRadius;
-        this.startY = config.centerY + Math.sin(angle) * startRadius;
+        // Calculate starting position on outer edge
+        const startDistance = Math.max(canvas.width, canvas.height) * 0.6;
+        const startScreenRadius = startDistance * Math.sin(angleFromCenter);
 
-        // Calculate direction toward center (opposite of starfield)
-        const dx = config.centerX - this.startX;
-        const dy = config.centerY - this.startY;
+        this.startX = config.centerX + Math.cos(rotation) * startScreenRadius;
+        this.startY = config.centerY + Math.sin(rotation) * startScreenRadius;
+
+        // Target is offset from exact center to create angled trajectory
+        const targetOffsetRadius = 30;
+        const targetX = config.centerX + Math.cos(rotation) * targetOffsetRadius;
+        const targetY = config.centerY + Math.sin(rotation) * targetOffsetRadius;
+
+        // Calculate direction toward offset center (creates 3D angled movement)
+        const dx = targetX - this.startX;
+        const dy = targetY - this.startY;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        // Normalize direction vector (pointing inward)
+        // Normalize direction vector (pointing inward at an angle)
         this.dirX = dx / distance;
         this.dirY = dy / distance;
 
@@ -52,7 +63,7 @@ class LaserBlast {
         this.trailLength = 100;
         this.width = 8; // Thicker tube-like laser
         this.distance = 0;
-        this.maxDistance = distance - 50; // Stop before reaching center
+        this.maxDistance = distance - 40; // Stop before reaching center
     }
 
     update() {
