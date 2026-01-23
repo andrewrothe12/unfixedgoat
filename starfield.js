@@ -28,13 +28,21 @@ let hyperdriveActive = false;
 // Laser blast class for TIE fighter weapons
 class LaserBlast {
     constructor(offsetX) {
-        // Start from bottom center area (below TIE fighter cockpit)
-        this.startX = config.centerX + offsetX;
-        this.startY = canvas.height * 0.85; // Start from lower part of screen
+        // Start from outer edge of screen
+        const angle = Math.random() * Math.PI * 2;
+        const startRadius = Math.max(canvas.width, canvas.height) * 0.7;
 
-        // Shoot straight up toward center
-        this.dirX = 0;
-        this.dirY = -1;
+        this.startX = config.centerX + Math.cos(angle) * startRadius;
+        this.startY = config.centerY + Math.sin(angle) * startRadius;
+
+        // Calculate direction toward center (opposite of starfield)
+        const dx = config.centerX - this.startX;
+        const dy = config.centerY - this.startY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        // Normalize direction vector (pointing inward)
+        this.dirX = dx / distance;
+        this.dirY = dy / distance;
 
         // Current position
         this.x = this.startX;
@@ -44,7 +52,7 @@ class LaserBlast {
         this.trailLength = 100;
         this.width = 8; // Thicker tube-like laser
         this.distance = 0;
-        this.maxDistance = canvas.height * 0.5; // Travel to middle of screen
+        this.maxDistance = distance - 50; // Stop before reaching center
     }
 
     update() {
