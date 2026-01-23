@@ -28,64 +28,55 @@ let hyperdriveActive = false;
 // Laser blast class for TIE fighter weapons
 class LaserBlast {
     constructor() {
-        // Mirror the starfield 3D system but in reverse (negative Z direction)
-        // Use same angle distribution as stars (5-35 degrees) for consistency
-        const spreadFactor = Math.pow(Math.random(), 2);
-        this.angleFromCenter = (5 + spreadFactor * 30) * (Math.PI / 180); // 5-35 degrees
-
-        // Random rotation around center axis - but space lasers out more
+        // Start from outer edge at random angle
         this.rotation = Math.random() * Math.PI * 2;
 
-        // Start from outer edge in 3D space (far away in negative Z)
-        const startDistance = Math.max(canvas.width, canvas.height) * 0.7;
+        // Start far from center (on outer edges of screen)
+        const startRadius = Math.max(canvas.width, canvas.height) * 0.7;
+        this.startX = config.centerX + Math.cos(this.rotation) * startRadius;
+        this.startY = config.centerY + Math.sin(this.rotation) * startRadius;
 
-        // Calculate 2D screen position based on 3D angles (same projection as stars)
-        const screenRadius = startDistance * Math.sin(this.angleFromCenter);
-        this.startX = config.centerX + Math.cos(this.rotation) * screenRadius;
-        this.startY = config.centerY + Math.sin(this.rotation) * screenRadius;
-
-        // Z-depth component (negative - coming toward viewer, opposite of stars)
-        this.z = startDistance * Math.cos(this.angleFromCenter);
-
-        // Direction: straight line toward center in 3D space
-        // Calculate exact center target
-        const dx = config.centerX - this.startX;
-        const dy = config.centerY - this.startY;
-        const screenDistance = Math.sqrt(dx * dx + dy * dy);
-
-        // Normalize direction vector (straight toward center)
-        this.dirX = dx / screenDistance;
-        this.dirY = dy / screenDistance;
-
-        // Current position
+        // Current position starts at outer edge
         this.x = this.startX;
         this.y = this.startY;
+
+        // Distance traveled inward
         this.distance = 0;
 
-        this.speed = 15;
-        this.trailLength = 120;
-        this.width = 10; // Thicker, more visible
-        this.maxDistance = screenDistance - 60; // Stop before center
+        // Movement speed and trail
+        this.speed = 12;
+        this.baseWidth = 12;
+        this.baseTrailLength = 100;
+
+        // Calculate max distance (stop before reaching center)
+        this.maxDistance = startRadius - 80;
     }
 
     update() {
+        // Move distance inward
         this.distance += this.speed;
 
-        // Move in straight line toward center
-        this.x = this.startX + this.dirX * this.distance;
-        this.y = this.startY + this.dirY * this.distance;
+        // Calculate how far we've progressed (0 = start, 1 = end)
+        const progress = this.distance / this.maxDistance;
 
-        // Update Z position (moving toward viewer, negative direction)
-        this.z -= this.speed * Math.cos(this.angleFromCenter);
+        // Move toward center in straight line
+        const currentRadius = Math.max(canvas.width, canvas.height) * 0.7 - this.distance;
+        this.x = config.centerX + Math.cos(this.rotation) * currentRadius;
+        this.y = config.centerY + Math.sin(this.rotation) * currentRadius;
+
+        // Scale down width and trail as we approach center (simulating depth)
+        this.width = this.baseWidth * (1 - progress * 0.7); // Shrink to 30% of original
+        this.trailLength = this.baseTrailLength * (1 - progress * 0.5); // Shrink trail too
 
         // Remove if reached max distance
         return this.distance < this.maxDistance;
     }
 
     draw() {
-        // Calculate trail start position (behind the laser)
-        const trailStartX = this.x - this.dirX * this.trailLength;
-        const trailStartY = this.y - this.dirY * this.trailLength;
+        // Calculate trail start position (away from center along the same radius)
+        const trailRadius = Math.max(canvas.width, canvas.height) * 0.7 - this.distance + this.trailLength;
+        const trailStartX = config.centerX + Math.cos(this.rotation) * trailRadius;
+        const trailStartY = config.centerY + Math.sin(this.rotation) * trailRadius;
 
         // Draw thick red laser tube with gradient
         ctx.beginPath();
