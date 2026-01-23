@@ -19,7 +19,7 @@ const config = {
     centerY: canvas.height / 2,
     trailLength: 150,
     baseTrailLength: 150, // Store base trail length
-    spawnRadius: 80
+    spawnRadius: 0
 };
 
 // Hyperdrive state
@@ -32,21 +32,32 @@ class Star {
     }
 
     reset() {
-        // Random angle from center
-        this.angle = Math.random() * Math.PI * 2;
+        // 3D angle - particles spread from 5 to 35 degrees off-axis (no particles at 0 degrees)
+        // Use power distribution to concentrate particles near center
+        const spreadFactor = Math.pow(Math.random(), 2); // Bias toward smaller values
+        this.angleFromCenter = (5 + spreadFactor * 30) * (Math.PI / 180); // 5 to 35 degrees in radians
 
-        // Random distance from center - start in a ring (use spawn radius from config)
-        this.distance = config.spawnRadius + Math.random() * 50;
+        // Random rotation around the center axis (0-360 degrees)
+        this.rotation = Math.random() * Math.PI * 2;
 
-        // Calculate position based on polar coordinates
-        this.x = config.centerX + Math.cos(this.angle) * this.distance;
-        this.y = config.centerY + Math.sin(this.angle) * this.distance;
+        // Start from a slightly larger aperture at the center
+        this.distance = Math.random() * 20;
+
+        // Calculate 2D screen position based on 3D angles
+        // Project the 3D position onto 2D screen
+        const screenRadius = this.distance * Math.sin(this.angleFromCenter);
+        this.x = config.centerX + Math.cos(this.rotation) * screenRadius;
+        this.y = config.centerY + Math.sin(this.rotation) * screenRadius;
+
+        // Z-depth component (distance toward viewer)
+        this.z = this.distance * Math.cos(this.angleFromCenter);
 
         // Individual speed multiplier for variation
         this.speedMultiplier = 0.5 + Math.random() * 0.5;
 
-        // Much smaller particle size
-        this.size = 0.5 + Math.random() * 0.5;
+        // Much smaller particle size (constant, no depth scaling)
+        this.baseSize = 0.2 + Math.random() * 0.3;
+        this.size = this.baseSize;
 
         // Color variation (blue-white spectrum like hyperspace)
         this.colorVariation = Math.random();
@@ -64,17 +75,25 @@ class Star {
             this.trailPoints.shift();
         }
 
-        // Accelerate outward from center
+        // Move outward in 3D space at constant speed
         this.distance += config.speed * this.speedMultiplier;
+        this.z = this.distance * Math.cos(this.angleFromCenter);
 
-        // Update position
-        this.x = config.centerX + Math.cos(this.angle) * this.distance;
-        this.y = config.centerY + Math.sin(this.angle) * this.distance;
+        // Update 2D screen position based on 3D position
+        const screenRadius = this.distance * Math.sin(this.angleFromCenter);
+        this.x = config.centerX + Math.cos(this.rotation) * screenRadius;
+        this.y = config.centerY + Math.sin(this.rotation) * screenRadius;
 
-        // Reset if star goes off screen
+        // Keep size constant (no depth scaling)
+        this.size = this.baseSize;
+
+        // Reset if star goes off screen or gets too large (before size grows)
         const margin = 100;
+        const maxScreenRadius = Math.max(canvas.width, canvas.height) * 0.4; // Terminate at 40% of screen
+
         if (this.x < -margin || this.x > canvas.width + margin ||
-            this.y < -margin || this.y > canvas.height + margin) {
+            this.y < -margin || this.y > canvas.height + margin ||
+            screenRadius > maxScreenRadius) {
             this.reset();
         }
     }
@@ -103,10 +122,10 @@ class Star {
         // Draw long solid trail from center
         if (this.distance > 10) {
             // Calculate trail start position (much further back for long streaks)
-            // But keep it outside the center hole (minimum spawn radius from center)
-            const trailDistance = Math.max(config.spawnRadius, this.distance - config.trailLength);
-            const trailStartX = config.centerX + Math.cos(this.angle) * trailDistance;
-            const trailStartY = config.centerY + Math.sin(this.angle) * trailDistance;
+            const trailDistance = Math.max(0, this.distance - config.trailLength);
+            const trailScreenRadius = trailDistance * Math.sin(this.angleFromCenter);
+            const trailStartX = config.centerX + Math.cos(this.rotation) * trailScreenRadius;
+            const trailStartY = config.centerY + Math.sin(this.rotation) * trailScreenRadius;
 
             // Draw solid trail line
             ctx.beginPath();
@@ -198,11 +217,6 @@ document.getElementById('starSpeed').addEventListener('input', (e) => {
         config.speed = parseInt(e.target.value);
     }
     document.getElementById('starSpeedValue').textContent = e.target.value;
-});
-
-document.getElementById('spawnRadius').addEventListener('input', (e) => {
-    config.spawnRadius = parseInt(e.target.value);
-    document.getElementById('spawnRadiusValue').textContent = e.target.value;
 });
 
 // Toggle button functionality
