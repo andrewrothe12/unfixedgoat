@@ -27,16 +27,26 @@ let hyperdriveActive = false;
 
 // Laser blast class for TIE fighter weapons
 class LaserBlast {
-    constructor() {
-        // Start from outer edge at random angle
-        this.rotation = Math.random() * Math.PI * 2;
+    constructor(side) {
+        // Start from bottom corners at fixed angles
+        // side: 'left' or 'right'
 
-        // Start far from center (on outer edges of screen)
-        const startRadius = Math.max(canvas.width, canvas.height) * 0.7;
-        this.startX = config.centerX + Math.cos(this.rotation) * startRadius;
-        this.startY = config.centerY + Math.sin(this.rotation) * startRadius;
+        if (side === 'left') {
+            // Bottom left corner, angled toward center
+            this.startX = canvas.width * 0.15;
+            this.startY = canvas.height * 0.9;
+        } else {
+            // Bottom right corner, angled toward center
+            this.startX = canvas.width * 0.85;
+            this.startY = canvas.height * 0.9;
+        }
 
-        // Current position starts at outer edge
+        // Calculate angle from start position to center
+        const dx = config.centerX - this.startX;
+        const dy = config.centerY - this.startY;
+        this.rotation = Math.atan2(dy, dx);
+
+        // Current position starts at bottom corner
         this.x = this.startX;
         this.y = this.startY;
 
@@ -49,7 +59,12 @@ class LaserBlast {
         this.baseTrailLength = 100;
 
         // Calculate max distance (stop before reaching center)
-        this.maxDistance = startRadius - 80;
+        const maxDist = Math.sqrt(dx * dx + dy * dy);
+        this.maxDistance = maxDist - 80;
+
+        // Direction vector toward center
+        this.dirX = dx / maxDist;
+        this.dirY = dy / maxDist;
     }
 
     update() {
@@ -60,9 +75,8 @@ class LaserBlast {
         const progress = this.distance / this.maxDistance;
 
         // Move toward center in straight line
-        const currentRadius = Math.max(canvas.width, canvas.height) * 0.7 - this.distance;
-        this.x = config.centerX + Math.cos(this.rotation) * currentRadius;
-        this.y = config.centerY + Math.sin(this.rotation) * currentRadius;
+        this.x = this.startX + this.dirX * this.distance;
+        this.y = this.startY + this.dirY * this.distance;
 
         // Scale down width and trail as we approach center (simulating depth)
         this.width = this.baseWidth * (1 - progress * 0.7); // Shrink to 30% of original
@@ -73,10 +87,9 @@ class LaserBlast {
     }
 
     draw() {
-        // Calculate trail start position (away from center along the same radius)
-        const trailRadius = Math.max(canvas.width, canvas.height) * 0.7 - this.distance + this.trailLength;
-        const trailStartX = config.centerX + Math.cos(this.rotation) * trailRadius;
-        const trailStartY = config.centerY + Math.sin(this.rotation) * trailRadius;
+        // Calculate trail start position (behind the laser along direction vector)
+        const trailStartX = this.x - this.dirX * this.trailLength;
+        const trailStartY = this.y - this.dirY * this.trailLength;
 
         // Draw thick red laser tube with gradient
         ctx.beginPath();
@@ -354,10 +367,9 @@ window.addEventListener('keydown', (e) => {
     // Laser blast controls - B key fires twin lasers
     if (e.code === 'KeyB') {
         e.preventDefault();
-        // Fire multiple laser blasts in 3D space (spread out more)
-        for (let i = 0; i < 4; i++) {
-            laserBlasts.push(new LaserBlast());
-        }
+        // Fire two laser blasts, one from each side (left and right)
+        laserBlasts.push(new LaserBlast('left'));
+        laserBlasts.push(new LaserBlast('right'));
     }
 });
 
