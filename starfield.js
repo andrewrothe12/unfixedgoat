@@ -28,58 +28,68 @@ let hyperdriveActive = false;
 // Laser blast class for TIE fighter weapons
 class LaserBlast {
     constructor(offsetX) {
-        this.x = config.centerX + offsetX;
-        this.y = config.centerY;
+        // Start from bottom of screen
+        this.startX = config.centerX + offsetX;
+        this.startY = canvas.height;
+
+        // Calculate direction toward center aperture
+        const dx = config.centerX - this.startX;
+        const dy = config.centerY - this.startY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        // Normalize direction vector
+        this.dirX = dx / distance;
+        this.dirY = dy / distance;
+
+        // Current position
+        this.x = this.startX;
+        this.y = this.startY;
+
         this.speed = 15;
         this.trailLength = 80;
-        this.size = 2;
+        this.width = 3;
+        this.height = 12;
         this.distance = 0;
-        this.maxDistance = Math.max(canvas.width, canvas.height) * 0.8;
+        this.maxDistance = distance - 50; // Stop before reaching center
     }
 
     update() {
         this.distance += this.speed;
-        this.y -= this.speed;
+        this.x = this.startX + this.dirX * this.distance;
+        this.y = this.startY + this.dirY * this.distance;
 
-        // Remove if off screen
-        return this.distance < this.maxDistance && this.y > -100;
+        // Remove if reached max distance
+        return this.distance < this.maxDistance;
     }
 
     draw() {
-        // Calculate trail start position
-        const trailStartY = this.y + this.trailLength;
+        // Calculate trail start position (behind the laser)
+        const trailStartX = this.x - this.dirX * this.trailLength;
+        const trailStartY = this.y - this.dirY * this.trailLength;
 
-        // Draw outer glow first (largest)
+        // Draw red laser trail with gradient - rectangular shape
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size * 5, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255, 0, 0, 0.2)';
-        ctx.fill();
-
-        // Draw red laser trail with gradient
-        ctx.beginPath();
-        ctx.moveTo(this.x, trailStartY);
+        ctx.moveTo(trailStartX, trailStartY);
         ctx.lineTo(this.x, this.y);
 
-        const gradient = ctx.createLinearGradient(this.x, trailStartY, this.x, this.y);
+        const gradient = ctx.createLinearGradient(trailStartX, trailStartY, this.x, this.y);
         gradient.addColorStop(0, 'rgba(255, 0, 0, 0)');
         gradient.addColorStop(0.3, 'rgba(255, 80, 80, 0.8)');
         gradient.addColorStop(1, 'rgba(255, 150, 150, 1)');
 
         ctx.strokeStyle = gradient;
-        ctx.lineWidth = this.size * 2;
-        ctx.lineCap = 'round';
+        ctx.lineWidth = this.width;
+        ctx.lineCap = 'butt'; // Rectangular ends
         ctx.stroke();
 
-        // Draw bright core
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size * 2.5, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255, 100, 100, 0.8)';
-        ctx.fill();
-
-        // Draw very bright center point
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size * 1.5, 0, Math.PI * 2);
+        // Draw bright rectangular head
         ctx.fillStyle = 'rgba(255, 200, 200, 1)';
+        ctx.fillRect(this.x - this.width / 2, this.y - this.height / 2, this.width, this.height);
+
+        // Add subtle glow
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.width * 2, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
         ctx.fill();
     }
 }
