@@ -28,29 +28,23 @@ let hyperdriveActive = false;
 // Laser blast class for TIE fighter weapons
 class LaserBlast {
     constructor(offsetX) {
-        // Start from bottom of screen
+        // Start from bottom center area (below TIE fighter cockpit)
         this.startX = config.centerX + offsetX;
-        this.startY = canvas.height;
+        this.startY = canvas.height * 0.85; // Start from lower part of screen
 
-        // Calculate direction toward center aperture
-        const dx = config.centerX - this.startX;
-        const dy = config.centerY - this.startY;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-
-        // Normalize direction vector
-        this.dirX = dx / distance;
-        this.dirY = dy / distance;
+        // Shoot straight up toward center
+        this.dirX = 0;
+        this.dirY = -1;
 
         // Current position
         this.x = this.startX;
         this.y = this.startY;
 
-        this.speed = 15;
-        this.trailLength = 80;
-        this.width = 3;
-        this.height = 12;
+        this.speed = 18;
+        this.trailLength = 100;
+        this.width = 8; // Thicker tube-like laser
         this.distance = 0;
-        this.maxDistance = distance - 50; // Stop before reaching center
+        this.maxDistance = canvas.height * 0.5; // Travel to middle of screen
     }
 
     update() {
@@ -67,29 +61,40 @@ class LaserBlast {
         const trailStartX = this.x - this.dirX * this.trailLength;
         const trailStartY = this.y - this.dirY * this.trailLength;
 
-        // Draw red laser trail with gradient - rectangular shape
+        // Draw thick red laser tube with gradient
         ctx.beginPath();
         ctx.moveTo(trailStartX, trailStartY);
         ctx.lineTo(this.x, this.y);
 
         const gradient = ctx.createLinearGradient(trailStartX, trailStartY, this.x, this.y);
         gradient.addColorStop(0, 'rgba(255, 0, 0, 0)');
-        gradient.addColorStop(0.3, 'rgba(255, 80, 80, 0.8)');
-        gradient.addColorStop(1, 'rgba(255, 150, 150, 1)');
+        gradient.addColorStop(0.2, 'rgba(255, 60, 60, 0.9)');
+        gradient.addColorStop(1, 'rgba(255, 120, 120, 1)');
 
         ctx.strokeStyle = gradient;
         ctx.lineWidth = this.width;
-        ctx.lineCap = 'butt'; // Rectangular ends
+        ctx.lineCap = 'round';
         ctx.stroke();
 
-        // Draw bright rectangular head
-        ctx.fillStyle = 'rgba(255, 200, 200, 1)';
-        ctx.fillRect(this.x - this.width / 2, this.y - this.height / 2, this.width, this.height);
-
-        // Add subtle glow
+        // Draw bright core down the center
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.width * 2, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
+        ctx.moveTo(trailStartX, trailStartY);
+        ctx.lineTo(this.x, this.y);
+
+        const coreGradient = ctx.createLinearGradient(trailStartX, trailStartY, this.x, this.y);
+        coreGradient.addColorStop(0, 'rgba(255, 200, 200, 0)');
+        coreGradient.addColorStop(0.3, 'rgba(255, 220, 220, 0.8)');
+        coreGradient.addColorStop(1, 'rgba(255, 255, 255, 1)');
+
+        ctx.strokeStyle = coreGradient;
+        ctx.lineWidth = this.width * 0.4;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+
+        // Add outer glow
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.width * 1.5, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 0, 0, 0.4)';
         ctx.fill();
     }
 }
@@ -332,9 +337,9 @@ window.addEventListener('keydown', (e) => {
     // Laser blast controls - B key fires twin lasers
     if (e.code === 'KeyB') {
         e.preventDefault();
-        // Fire two laser blasts from left and right positions (like TIE fighter twin cannons)
-        laserBlasts.push(new LaserBlast(-30)); // Left cannon
-        laserBlasts.push(new LaserBlast(30));  // Right cannon
+        // Fire two laser blasts from left and right positions (from bottom of TIE fighter)
+        laserBlasts.push(new LaserBlast(-50)); // Left cannon
+        laserBlasts.push(new LaserBlast(50));  // Right cannon
     }
 });
 
