@@ -25,6 +25,62 @@ const config = {
 // Hyperdrive state
 let hyperdriveActive = false;
 
+// Laser blast class for TIE fighter weapons
+class LaserBlast {
+    constructor(offsetX) {
+        this.x = config.centerX + offsetX;
+        this.y = config.centerY;
+        this.speed = 15;
+        this.trailLength = 80;
+        this.size = 2;
+        this.distance = 0;
+        this.maxDistance = Math.max(canvas.width, canvas.height) * 0.8;
+    }
+
+    update() {
+        this.distance += this.speed;
+        this.y -= this.speed;
+
+        // Remove if off screen
+        return this.distance < this.maxDistance && this.y > -100;
+    }
+
+    draw() {
+        // Calculate trail start position
+        const trailStartY = this.y + this.trailLength;
+
+        // Draw red laser trail with gradient
+        ctx.beginPath();
+        ctx.moveTo(this.x, trailStartY);
+        ctx.lineTo(this.x, this.y);
+
+        const gradient = ctx.createLinearGradient(this.x, trailStartY, this.x, this.y);
+        gradient.addColorStop(0, 'rgba(255, 0, 0, 0)');
+        gradient.addColorStop(0.3, 'rgba(255, 50, 50, 0.6)');
+        gradient.addColorStop(1, 'rgba(255, 100, 100, 1)');
+
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = this.size;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+
+        // Draw bright red point at the head
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size * 2, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 80, 80, 1)';
+        ctx.fill();
+
+        // Add glow effect
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size * 3, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
+        ctx.fill();
+    }
+}
+
+// Array to store active laser blasts
+const laserBlasts = [];
+
 // Star class for individual particles
 class Star {
     constructor() {
@@ -173,6 +229,16 @@ function animate() {
         star.draw();
     });
 
+    // Update and draw laser blasts
+    for (let i = laserBlasts.length - 1; i >= 0; i--) {
+        const blast = laserBlasts[i];
+        if (!blast.update()) {
+            laserBlasts.splice(i, 1);
+        } else {
+            blast.draw();
+        }
+    }
+
     requestAnimationFrame(animate);
 }
 
@@ -245,6 +311,14 @@ window.addEventListener('keydown', (e) => {
         hyperdriveActive = true;
         config.speed = config.baseSpeed * config.hyperdriveMultiplier;
         config.trailLength = config.baseTrailLength * 1.5; // Longer trails during hyperdrive
+    }
+
+    // Laser blast controls - B key fires twin lasers
+    if (e.code === 'KeyB') {
+        e.preventDefault();
+        // Fire two laser blasts from left and right positions (like TIE fighter twin cannons)
+        laserBlasts.push(new LaserBlast(-30)); // Left cannon
+        laserBlasts.push(new LaserBlast(30));  // Right cannon
     }
 });
 
