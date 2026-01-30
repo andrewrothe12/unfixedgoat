@@ -295,6 +295,12 @@
   <div class="overlay hidden" id="settings-screen">
     <h2>SETTINGS</h2>
     <div class="settings-row">
+      <label>SPEED</label>
+      <div>
+        <button class="btn small" id="btn-speed">MEDIUM</button>
+      </div>
+    </div>
+    <div class="settings-row">
       <label>MAP SIZE</label>
       <div>
         <button class="btn small" id="btn-map-size">20x20</button>
@@ -491,12 +497,19 @@ const MAP_SIZES = [
   { label: '10x10', cols: 10, rows: 10 },
 ];
 
+const SPEED_MODES = [
+  { label: 'SLOW', tick: 200 },
+  { label: 'MEDIUM', tick: 160 },
+  { label: 'FAST', tick: 120 },
+];
+
 let settings = {
   wallMode: 'classic', // 'classic' or 'wrap'
   musicVol: 0.4,
   sfxVol: 0.6,
   selectedSkin: 0,
   mapSize: 0, // index into MAP_SIZES
+  speed: 1, // index into SPEED_MODES, default medium
 };
 
 let highScores = [];
@@ -626,7 +639,7 @@ function initGame() {
   nextDirection = { x: 1, y: 0 };
   score = 0;
   snakeLength = 3;
-  tickRate = 120; // ms per tick
+  tickRate = SPEED_MODES[settings.speed].tick; // ms per tick
   tickTimer = 0;
   baseDecayInterval = 3000; // ms - lose a segment every 3s
   decayInterval = baseDecayInterval;
@@ -1159,6 +1172,14 @@ document.getElementById('name-input').addEventListener('keydown', (e) => {
   }
 });
 
+// Speed toggle
+document.getElementById('btn-speed').addEventListener('click', () => {
+  AudioEngine.playClick();
+  settings.speed = (settings.speed + 1) % SPEED_MODES.length;
+  updateSettingsUI();
+  saveStorage();
+});
+
 // Map size toggle
 document.getElementById('btn-map-size').addEventListener('click', () => {
   AudioEngine.playClick();
@@ -1189,6 +1210,7 @@ document.getElementById('vol-sfx').addEventListener('input', (e) => {
 });
 
 function updateSettingsUI() {
+  document.getElementById('btn-speed').textContent = SPEED_MODES[settings.speed].label;
   document.getElementById('btn-map-size').textContent = MAP_SIZES[settings.mapSize].label;
   document.getElementById('btn-wall-mode').textContent =
     settings.wallMode === 'classic' ? 'CLASSIC (DEATH)' : 'WRAP AROUND';
